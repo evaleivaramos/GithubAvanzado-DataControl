@@ -27,7 +27,7 @@ jobs:
         run: |
           FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           RAMA="${{ github.head_ref || github.ref_name }}"
-          echo "Añadida feature: $RAMA - $FECHA" >> README.md
+          echo "Añadida feature $RAMA - $FECHA" >> README.md
 
       - name: Guardar cambios
         if: github.event_name == 'push'
