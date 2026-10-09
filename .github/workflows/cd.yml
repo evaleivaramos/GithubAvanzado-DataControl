@@ -1,0 +1,60 @@
+
+name: CD - Main
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Incrementar version del README
+        shell: bash
+        run: |
+          touch README.md
+          VERSION=$(grep -oE 'AppVersion-[0-9]+' README.md | tail -1 | cut -d'-' -f2)
+          VERSION=${VERSION:-0}
+          NUEVA_VERSION=$((VERSION + 1))
+          FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          sed -i '/AppVersion-[0-9]\+/d' README.md
+          echo "AppVersion-$NUEVA_VERSION - $FECHA" >> README.md
+
+      - name: Guardar nueva version
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet || git commit -m "Actualizar version desde CD"
+          git push
+
+  validar-produccion:
+    needs: actualizar-version
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar PROD_TOKEN
+        shell: powershell
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ($env:PROD_TOKEN -ne $env:LOCAL_PROD_TOKEN) {
+            Write-Error "Error: PROD_TOKEN no coincide"
+            exit 1
+          }
+          Write-Host "Validacion de produccion correcta"
