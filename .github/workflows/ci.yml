@@ -1,0 +1,56 @@
+
+name: CI - Develop
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  actualizar-readme:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+       - name: Actualizar README
+        shell: bash
+        run: |
+          FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          RAMA="${{ github.head_ref || github.ref_name }}"
+          echo "Añadida feature: $RAMA - $FECHA" >> README.md
+
+      - name: Guardar cambios
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Actualizar README desde CI" || exit 0
+          git push
+
+  validar-desarrollo:
+    needs: actualizar-readme
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar DEV_TOKEN
+        shell: powershell
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ($env:DEV_TOKEN -ne $env:LOCAL_DEV_TOKEN) {
+            Write-Error "Error: DEV_TOKEN no coincide"
+            exit 1
+          }
+          Write-Host "Validacion correcta"
