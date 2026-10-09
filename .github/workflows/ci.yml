@@ -22,7 +22,7 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-       - name: Actualizar README
+      - name: Actualizar README
         shell: bash
         run: |
           FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
